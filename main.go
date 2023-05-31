@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
-
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+type Genre struct {
+	Id int64 `bson:"id"`
+	Name string `bson:"name"`
+}
 
 type MovieDescription struct {
 	Budget            int64   `bson:"budget"`
@@ -17,18 +22,80 @@ type MovieDescription struct {
 	Revenue           int32   `bson:"revenue"`
 	Runtime           int32   `bson:"runtime"`
 	Title             string  `bson:"title"`
-	Vote_average      float32 `bson:"vote_average"`
+	Vote_average      float64 `bson:"vote_average"`
 	Vote_count        int32   `bson:"vote_count"`
+	//Description_vector [384]float64 `bson:"description_vector"`
+	Genres			  bson.A `bson:"bson:genre"`
 }
 
-type MovieVector = [521]float32
+
+type MovieVector = [406]float64
 
 const db_uri = "mongodb://wassi-algo:poney@138.195.138.30:27017/wassidb?authMechanism=SCRAM-SHA-256"
 
 func main() {
+	fmt.Println(BuildMovieVector("Tarzan"))
 }
 
-func FromTitle(title string) *MovieDescription {
+func BuildMovieVector(title string) *MovieVector {
+
+	movie := FromTitle(title)
+	var movie_vec [406]float64
+	movie_vec[0] = movie["popularity"].(float64)/100
+	movie_vec[1] = float64(movie["runtime"].(int32))/95 
+	movie_vec[2] = movie["vote_average"].(float64)/10
+	for _, s := range movie["genres"].(bson.A) {
+		if s.(bson.M)["id"] == int32(12) { 
+			movie_vec[4] = float64(1)
+		} else if s.(bson.M)["id"] == int32(14) {
+			movie_vec[5] = float64(1)
+		} else if s.(bson.M)["id"] == int32(16) {
+			movie_vec[6] = float64(1)
+		} else if s.(bson.M)["id"] == int32(18) {
+			movie_vec[7] = float64(1)
+		} else if s.(bson.M)["id"] == int32(27) {
+			movie_vec[8] = float64(1)
+		} else if s.(bson.M)["id"] == int32(28) {
+			movie_vec[9] = float64(1)
+		} else if s.(bson.M)["id"] == int32(35) {
+			movie_vec[10] = float64(1)
+		} else if s.(bson.M)["id"] == int32(36) {
+			movie_vec[11] = float64(1)
+		} else if s.(bson.M)["id"] == int32(37) {
+			movie_vec[12] = float64(1)
+		} else if s.(bson.M)["id"] == int32(53) {
+			movie_vec[13] = float64(1)
+		} else if s.(bson.M)["id"] == int32(80) {
+			movie_vec[14] = float64(1)
+		} else if s.(bson.M)["id"] == int32(9648) {
+			movie_vec[15] = float64(1)
+			} else if s.(bson.M)["id"] == int32(10402) {
+				movie_vec[15] = float64(1)
+			} else if s.(bson.M)["id"] == int32(10749) {
+				movie_vec[16] = float64(1)
+			} else if s.(bson.M)["id"] == int32(10752) {
+				movie_vec[17] = float64(1)
+			} else if s.(bson.M)["id"] == int32(10770) {
+				movie_vec[18] = float64(1)
+			} else if s.(bson.M)["id"] == int32(878) {
+				movie_vec[19] = float64(1)
+			} else if s.(bson.M)["id"] == int32(10751) {
+				movie_vec[20] = float64(1)
+			} else if s.(bson.M)["id"] == int32(99) {
+				movie_vec[21] = float64(1)
+			}
+	}
+	for i, _ := range movie["description_vector"].(bson.A){
+			movie_vec[i+22] = movie["description_vector"].(bson.A)[i].(float64)
+
+		}
+
+
+	return &movie_vec
+
+}
+
+func FromTitle(title string) bson.M {
 
 	serverApi := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(db_uri).SetServerAPIOptions(serverApi)
@@ -48,8 +115,9 @@ func FromTitle(title string) *MovieDescription {
 	coll := client.Database("wassidb").Collection("movies")
 	filter := bson.M{"title": title}
 
-	var movie MovieDescription
+	var movie bson.M
 	coll.FindOne(context.TODO(), filter).Decode(&movie)
 
-	return &movie
+	return movie
 }
+
