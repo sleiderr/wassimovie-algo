@@ -1,0 +1,13 @@
+[Unit]
+Description=WM-Algo runner
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/wm-algo
+User=wm-algo
+Group=wm-algo
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=wm-algo.service
