@@ -6,8 +6,7 @@ import (
 	"log"
 	"math"
 	"wassimovie-algo/internal/database"
-
-	// "math/rand"
+	"wassimovie-algo/internal/http"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -16,7 +15,7 @@ type MovieDescription struct {
 	Budget            int64   `bson:"budget"`
 	Original_language string  `bson:"original_language"`
 	Description       string  `bson:"overview"`
-	Popularity        float64 `bson:"popularity"`
+	Popularity        float32 `bson:"popularity"`
 	Release_date      string  `bson:"release_date"`
 	Revenue           int32   `bson:"revenue"`
 	Runtime           int32   `bson:"runtime"`
@@ -25,7 +24,7 @@ type MovieDescription struct {
 	Vote_count        int32   `bson:"vote_count"`
 }
 
-type MovieVector = [406]float64
+type MovieVector = [406]float32
 
 const MAX_CONCURRENT_JOBS = 500
 
@@ -34,6 +33,8 @@ type User struct {
 }
 
 func main() {
+	go http.InitServer()
+	fmt.Println("frost")
 	//UserVectorGeneration()
 	//fmt.Println(FromTitle("Nemo"))
 	fmt.Println(ComputeUserVector("2",RetrieveRatingsDatabase(),RetrieveMoviesDatabase()))
@@ -50,12 +51,12 @@ func RetrieveMoviesDatabase() map[string]bson.M {
 	filter := bson.M{}
 
 	cursor, err := coll.Find(context.TODO(), filter)
-	db_movies  := make(map[string]bson.M)
+	db_movies := make(map[string]bson.M)
 
 	for cursor.Next(context.TODO()) {
 		var temp_movie bson.M
 		cursor.Decode(&temp_movie)
-		db_movies[fmt.Sprintf("%v",temp_movie["imdb_id"])] = temp_movie
+		db_movies[fmt.Sprintf("%v", temp_movie["imdb_id"])] = temp_movie
 	}
 
 	return db_movies
@@ -73,22 +74,22 @@ func RetrieveRatingsDatabase() map[string][]bson.M {
 	filter := bson.M{}
 
 	cursor, err := coll.Find(context.TODO(), filter)
-	db_ratings  := make(map[string][]bson.M)
+	db_ratings := make(map[string][]bson.M)
 
 	for cursor.Next(context.TODO()) {
 		var temp_rating bson.M
 		cursor.Decode(&temp_rating)
-		db_ratings[fmt.Sprintf("%v",temp_rating["userId"])] = append(db_ratings[fmt.Sprintf("%v",temp_rating["userId"])],temp_rating)
+		db_ratings[fmt.Sprintf("%v", temp_rating["userId"])] = append(db_ratings[fmt.Sprintf("%v", temp_rating["userId"])], temp_rating)
 	}
 
 	return db_ratings
 
 }
 
-func UserVectorGeneration() *map[string][406]float64 {
+func UserVectorGeneration() *map[string][406]float32 {
 
-	var results map[string][406]float64
-	results = make(map[string][406]float64)
+	var results map[string][406]float32
+	results = make(map[string][406]float32)
 
 	client, err := database.MongoConnect("wassidb")
 
@@ -127,53 +128,53 @@ func UserVectorGeneration() *map[string][406]float64 {
 }
 
 func BuildMovieVector(movie bson.M) *MovieVector {
-	var movie_vec [406]float64
-	movie_vec[0] = movie["popularity"].(float64) / 100
-	movie_vec[1] = float64(movie["runtime"].(int32)) / 95
-	movie_vec[2] = movie["vote_average"].(float64) / 10
+	var movie_vec [406]float32
+	movie_vec[0] = movie["popularity"].(float32) / 100
+	movie_vec[1] = float32(movie["runtime"].(int32)) / 95
+	movie_vec[2] = movie["vote_average"].(float32) / 10
 	for _, s := range movie["genres"].(bson.A) {
 		if s.(bson.M)["id"] == int32(12) {
-			movie_vec[4] = float64(1)
+			movie_vec[4] = float32(1)
 		} else if s.(bson.M)["id"] == int32(14) {
-			movie_vec[5] = float64(1)
+			movie_vec[5] = float32(1)
 		} else if s.(bson.M)["id"] == int32(16) {
-			movie_vec[6] = float64(1)
+			movie_vec[6] = float32(1)
 		} else if s.(bson.M)["id"] == int32(18) {
-			movie_vec[7] = float64(1)
+			movie_vec[7] = float32(1)
 		} else if s.(bson.M)["id"] == int32(27) {
-			movie_vec[8] = float64(1)
+			movie_vec[8] = float32(1)
 		} else if s.(bson.M)["id"] == int32(28) {
-			movie_vec[9] = float64(1)
+			movie_vec[9] = float32(1)
 		} else if s.(bson.M)["id"] == int32(35) {
-			movie_vec[10] = float64(1)
+			movie_vec[10] = float32(1)
 		} else if s.(bson.M)["id"] == int32(36) {
-			movie_vec[11] = float64(1)
+			movie_vec[11] = float32(1)
 		} else if s.(bson.M)["id"] == int32(37) {
-			movie_vec[12] = float64(1)
+			movie_vec[12] = float32(1)
 		} else if s.(bson.M)["id"] == int32(53) {
-			movie_vec[13] = float64(1)
+			movie_vec[13] = float32(1)
 		} else if s.(bson.M)["id"] == int32(80) {
-			movie_vec[14] = float64(1)
+			movie_vec[14] = float32(1)
 		} else if s.(bson.M)["id"] == int32(9648) {
-			movie_vec[15] = float64(1)
+			movie_vec[15] = float32(1)
 		} else if s.(bson.M)["id"] == int32(10402) {
-			movie_vec[15] = float64(1)
+			movie_vec[15] = float32(1)
 		} else if s.(bson.M)["id"] == int32(10749) {
-			movie_vec[16] = float64(1)
+			movie_vec[16] = float32(1)
 		} else if s.(bson.M)["id"] == int32(10752) {
-			movie_vec[17] = float64(1)
+			movie_vec[17] = float32(1)
 		} else if s.(bson.M)["id"] == int32(10770) {
-			movie_vec[18] = float64(1)
+			movie_vec[18] = float32(1)
 		} else if s.(bson.M)["id"] == int32(878) {
-			movie_vec[19] = float64(1)
+			movie_vec[19] = float32(1)
 		} else if s.(bson.M)["id"] == int32(10751) {
-			movie_vec[20] = float64(1)
+			movie_vec[20] = float32(1)
 		} else if s.(bson.M)["id"] == int32(99) {
-			movie_vec[21] = float64(1)
+			movie_vec[21] = float32(1)
 		}
 	}
 	for i, _ := range movie["description_vector"].(bson.A) {
-		movie_vec[i+22] = movie["description_vector"].(bson.A)[i].(float64)
+		movie_vec[i+22] = movie["description_vector"].(bson.A)[i].(float32)
 
 	}
 
@@ -181,8 +182,8 @@ func BuildMovieVector(movie bson.M) *MovieVector {
 
 }
 
-func DotProduct(film1 [406]float64, film2 [406]float64) float64 {
-	var s float64
+func DotProduct(film1 [406]float32, film2 [406]float32) float32 {
+	var s float32
 	for i, _ := range film1 {
 		s += film1[i] * film2[i]
 
@@ -190,16 +191,16 @@ func DotProduct(film1 [406]float64, film2 [406]float64) float64 {
 	return s
 }
 
-func Norm(film1 [406]float64) float64 {
+func Norm(film1 [406]float32) float32 {
 	var res float64
 	for i, _ := range film1 {
-		res += math.Pow(film1[i], 2)
+		res += math.Pow(float64(film1[i]), 2)
 
 	}
-	return math.Pow(res, 0.5)
+	return float32(math.Pow(float64(res), 0.5))
 }
 
-func Cosine(film1 [406]float64, film2 [406]float64) float64 {
+func Cosine(film1 [406]float32, film2 [406]float32) float32 {
 	return DotProduct(film1, film2) / (Norm(film1) * Norm(film2))
 }
 
@@ -225,7 +226,6 @@ func ComputeUserVector(id string, db_ratings map[string][]bson.M, db_movies map[
 	}
 	for i, _ := range user_vector {
 		user_vector[i] /= count
-
 	}
 	return user_vector
 }
