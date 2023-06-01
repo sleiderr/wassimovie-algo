@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"math"
 )
 
 type Genre struct {
@@ -34,7 +35,7 @@ type MovieVector = [406]float64
 const db_uri = "mongodb://wassi-algo:poney@138.195.138.30:27017/wassidb?authMechanism=SCRAM-SHA-256"
 
 func main() {
-	fmt.Println(BuildMovieVector("Tarzan"))
+	fmt.Println(Cosine(*BuildMovieVector("Tarzan"),*BuildMovieVector("Cars")))
 }
 
 func BuildMovieVector(title string) *MovieVector {
@@ -94,6 +95,32 @@ func BuildMovieVector(title string) *MovieVector {
 	return &movie_vec
 
 }
+
+func DotProduct(film1 [406]float64, film2 [406]float64) float64 {
+	var s float64
+	for i, _ := range film1 {
+		s += film1[i] * film2[i]
+
+	}
+	return s
+}
+
+func Norm(film1 [406]float64) float64 {
+	var res float64
+	for i, _ := range film1 {
+		res += math.Pow(film1[i],2)
+
+	}
+	return math.Pow(res,0.5)
+}
+
+func Cosine(film1 [406]float64, film2 [406]float64) float64 {
+	return DotProduct(film1,film2) / (Norm(film1) * Norm(film2))
+}
+
+
+
+
 
 func FromTitle(title string) bson.M {
 
