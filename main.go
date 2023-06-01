@@ -36,7 +36,7 @@ type User struct {
 func main() {
 	//UserVectorGeneration()
 	//fmt.Println(FromTitle("Nemo"))
-	fmt.Println(ComputeUserVector("2"))
+	fmt.Println(ComputeUserVector("2",RetrieveRatingsDatabase(),RetrieveMoviesDatabase()))
 }
 
 func RetrieveMoviesDatabase() map[string]bson.M {
@@ -116,7 +116,7 @@ func UserVectorGeneration() *map[string][406]float64 {
 			// store in memory, update in db through another goroutine
 			go func() {
 				// results[user["userId"].(string)] = ComputeUserVector(user["userId"].(string))
-				ComputeUserVector(user["userId"].(string))
+			//	ComputeUserVector(user["userId"].(string))
 				<-waitChan
 			}()
 		}
@@ -203,41 +203,20 @@ func Cosine(film1 [406]float64, film2 [406]float64) float64 {
 	return DotProduct(film1, film2) / (Norm(film1) * Norm(film2))
 }
 
-func ComputeUserVector(id string) [406]float64 {
-	client, err := database.MongoConnect("wassidb")
+func ComputeUserVector(id string, db_ratings map[string][]bson.M, db_movies map[string]bson.M) [406]float64 {
 
-	if err != nil {
-		panic(err)
-	}
-
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			panic(err)
-		}
-	}()
-
-	coll_ratings := client.Database("wassidb").Collection("ratings")
-	coll_movies := client.Database("wassidb").Collection("movies")
-
-	filter_ratings := bson.M{"userId": id}
-
-	var results []bson.M
-	var results_movies bson.M
 	var count float64
 	var user_vector [406]float64
 
-	cursor, err := coll_ratings.Find(context.TODO(), filter_ratings)
-	cursor.Next(context.TODO())
-	err = cursor.All(context.TODO(), &results)
-
-	if err != nil {
-		panic(err)
-	}
-	for _, s := range results {
+	for _, s := range db_ratings[id] {
 		coeff := float64(s["rating"].(int32))
 		count += math.Abs(coeff)
-		coll_movies.FindOne(context.TODO(), bson.M{"imdb_id": s["movieId"]}).Decode(&results_movies)
-		temp_movie_vec := *BuildMovieVector(results_movies)
+		fmt.Println(db_movies[s["movieId"].(string)])
+		film_id, ok := s["movieId"].(string)
+		if (!ok) {
+			continue
+		}
+		temp_movie_vec := *BuildMovieVector(db_movies[film_id])
 		for i, _ := range temp_movie_vec {
 			user_vector[i] += temp_movie_vec[i]*coeff
 
