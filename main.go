@@ -35,12 +35,10 @@ type MovieVector = [406]float64
 const db_uri = "mongodb://wassi-algo:poney@138.195.138.30:27017/wassidb?authMechanism=SCRAM-SHA-256"
 
 func main() {
-	fmt.Println(Cosine(*BuildMovieVector("Tarzan"),*BuildMovieVector("Cars")))
+	fmt.Println(ComputeUserVector("2"))
 }
 
-func BuildMovieVector(title string) *MovieVector {
-
-	movie := FromTitle(title)
+func BuildMovieVector(movie bson.M) *MovieVector {
 	var movie_vec [406]float64
 	movie_vec[0] = movie["popularity"].(float64)/100
 	movie_vec[1] = float64(movie["runtime"].(int32))/95 
@@ -87,9 +85,9 @@ func BuildMovieVector(title string) *MovieVector {
 			}
 	}
 	for i, _ := range movie["description_vector"].(bson.A){
-			movie_vec[i+22] = movie["description_vector"].(bson.A)[i].(float64)
+		movie_vec[i+22] = movie["description_vector"].(bson.A)[i].(float64)
 
-		}
+	}
 
 
 	return &movie_vec
@@ -118,9 +116,64 @@ func Cosine(film1 [406]float64, film2 [406]float64) float64 {
 	return DotProduct(film1,film2) / (Norm(film1) * Norm(film2))
 }
 
+func ComputeUserVector(id string) [406]float64 {
+		serverApi := options.ServerAPI(options.ServerAPIVersion1)
+		opts := options.Client().ApplyURI(db_uri).SetServerAPIOptions(serverApi)
+
+		client, err := mongo.Connect(context.TODO(), opts)
+		client2, err := mongo.Connect(context.TODO(), opts)
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer func() {
+			if err = client.Disconnect(context.TODO()); err != nil {
+				panic(err)
+			}
+		}()
 
 
 
+	coll_ratings := client.Database("wassidb").Collection("ratings")
+	coll_movies := client2.Database("wassidb").Collection("movies")
+
+	filter_ratings := bson.M{"userId": id}
+
+	var results []bson.M
+	var results_movies bson.M
+	var count int32
+	var user_vector [406]float64
+
+	cursor, _ := coll_ratings.Find(context.TODO(), filter_ratings)
+	err = cursor.All(context.TODO(), &results)
+
+
+	if err != nil {
+		panic(err)
+	}
+	for _, s := range results {
+		count += 1
+		coll_movies.FindOne(context.TODO(), bson.M{"imdb_id":s["movieId"]}).Decode(&results_movies)
+		temp_movie_vec := *BuildMovieVector(results_movies)
+		for i,_ := range temp_movie_vec {
+			user_vector[i] += temp_movie_vec[i]
+
+		}
+		
+		
+	}
+	for i,_ := range user_vector {
+		user_vector[i] /= float64(count)
+
+	}
+
+
+
+
+	return user_vector
+		}
+	
 
 func FromTitle(title string) bson.M {
 
