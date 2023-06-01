@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
 	"wassimovie-algo/internal/database"
 
 	// "math/rand"
@@ -23,26 +25,186 @@ type MovieDescription struct {
 	Vote_count        int32   `bson:"vote_count"`
 }
 
-type MovieVector = [521]float32
+type MovieVector = [406]float64
 
-func main() {
-	// t := annoyindex.NewAnnoyIndexAngular(f)
-	// for i := 0; i < 1000000; i++ {
-	// 	item := make([]float32, 0, f)
-	// 	for x := 0; x < f; x++ {
-	// 		item = append(item, rand.Float32())
-	// 	}
-	// 	t.AddItem(i, item)
-	// }
-	// t.Build(40)
-	// t.Save("test.ann")
+const MAX_CONCURRENT_JOBS = 500
 
-	// annoyindex.DeleteAnnoyIndexAngular(t)
-
-	FromTitle("The Godfather")
+type User struct {
+	UserId string `bson:"userId"`
 }
 
-func FromTitle(title string) {
+func main() {
+	UserVectorGeneration()
+}
+
+func UserVectorGeneration() *map[string][406]float64 {
+
+	var results map[string][406]float64
+	results = make(map[string][406]float64)
+
+	client, err := database.MongoConnect("wassidb")
+
+	waitChan := make(chan struct{}, MAX_CONCURRENT_JOBS)
+
+	if err != nil {
+		panic(err)
+	}
+
+	coll := client.Database("wassidb").Collection("users")
+	filter := bson.M{}
+
+	cursor, err := coll.Find(context.TODO(), filter)
+
+	for cursor.Next(context.TODO()) {
+		waitChan <- struct{}{}
+		var user bson.M
+		if err := cursor.Decode(&user); err != nil {
+			log.Fatal(err)
+		}
+		if isOutdated, ok := user["outdated"]; ok && !isOutdated.(bool) {
+			// just store user vector in memory
+		} else {
+			// goroutine for vector calculation
+			// store in memory, update in db through another goroutine
+			go func() {
+				// results[user["userId"].(string)] = ComputeUserVector(user["userId"].(string))
+				ComputeUserVector(user["userId"].(string))
+				<-waitChan
+			}()
+		}
+	}
+
+	return &results
+
+}
+
+func BuildMovieVector(movie bson.M) *MovieVector {
+	var movie_vec [406]float64
+	movie_vec[0] = movie["popularity"].(float64) / 100
+	movie_vec[1] = float64(movie["runtime"].(int32)) / 95
+	movie_vec[2] = movie["vote_average"].(float64) / 10
+	for _, s := range movie["genres"].(bson.A) {
+		if s.(bson.M)["id"] == int32(12) {
+			movie_vec[4] = float64(1)
+		} else if s.(bson.M)["id"] == int32(14) {
+			movie_vec[5] = float64(1)
+		} else if s.(bson.M)["id"] == int32(16) {
+			movie_vec[6] = float64(1)
+		} else if s.(bson.M)["id"] == int32(18) {
+			movie_vec[7] = float64(1)
+		} else if s.(bson.M)["id"] == int32(27) {
+			movie_vec[8] = float64(1)
+		} else if s.(bson.M)["id"] == int32(28) {
+			movie_vec[9] = float64(1)
+		} else if s.(bson.M)["id"] == int32(35) {
+			movie_vec[10] = float64(1)
+		} else if s.(bson.M)["id"] == int32(36) {
+			movie_vec[11] = float64(1)
+		} else if s.(bson.M)["id"] == int32(37) {
+			movie_vec[12] = float64(1)
+		} else if s.(bson.M)["id"] == int32(53) {
+			movie_vec[13] = float64(1)
+		} else if s.(bson.M)["id"] == int32(80) {
+			movie_vec[14] = float64(1)
+		} else if s.(bson.M)["id"] == int32(9648) {
+			movie_vec[15] = float64(1)
+		} else if s.(bson.M)["id"] == int32(10402) {
+			movie_vec[15] = float64(1)
+		} else if s.(bson.M)["id"] == int32(10749) {
+			movie_vec[16] = float64(1)
+		} else if s.(bson.M)["id"] == int32(10752) {
+			movie_vec[17] = float64(1)
+		} else if s.(bson.M)["id"] == int32(10770) {
+			movie_vec[18] = float64(1)
+		} else if s.(bson.M)["id"] == int32(878) {
+			movie_vec[19] = float64(1)
+		} else if s.(bson.M)["id"] == int32(10751) {
+			movie_vec[20] = float64(1)
+		} else if s.(bson.M)["id"] == int32(99) {
+			movie_vec[21] = float64(1)
+		}
+	}
+	for i, _ := range movie["description_vector"].(bson.A) {
+		movie_vec[i+22] = movie["description_vector"].(bson.A)[i].(float64)
+
+	}
+
+	return &movie_vec
+
+}
+
+func DotProduct(film1 [406]float64, film2 [406]float64) float64 {
+	var s float64
+	for i, _ := range film1 {
+		s += film1[i] * film2[i]
+
+	}
+	return s
+}
+
+func Norm(film1 [406]float64) float64 {
+	var res float64
+	for i, _ := range film1 {
+		res += math.Pow(film1[i], 2)
+
+	}
+	return math.Pow(res, 0.5)
+}
+
+func Cosine(film1 [406]float64, film2 [406]float64) float64 {
+	return DotProduct(film1, film2) / (Norm(film1) * Norm(film2))
+}
+
+func ComputeUserVector(id string) [406]float64 {
+	client, err := database.MongoConnect("wassidb")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err = client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+
+	coll_ratings := client.Database("wassidb").Collection("ratings")
+	coll_movies := client.Database("wassidb").Collection("movies")
+
+	filter_ratings := bson.M{"userId": id}
+
+	var results []bson.M
+	var results_movies bson.M
+	var count int32
+	var user_vector [406]float64
+
+	fmt.Println("test1")
+	cursor, err := coll_ratings.Find(context.TODO(), filter_ratings)
+	cursor.Next(context.TODO())
+	err = cursor.All(context.TODO(), &results)
+
+	if err != nil {
+		panic(err)
+	}
+	for _, s := range results {
+		count += 1
+		coll_movies.FindOne(context.TODO(), bson.M{"imdb_id": s["movieId"]}).Decode(&results_movies)
+		temp_movie_vec := *BuildMovieVector(results_movies)
+		for i, _ := range temp_movie_vec {
+			user_vector[i] += temp_movie_vec[i]
+
+		}
+
+	}
+	for i, _ := range user_vector {
+		user_vector[i] /= float64(count)
+
+	}
+	fmt.Println(user_vector)
+	return user_vector
+}
+
+func FromTitle(title string) bson.M {
 
 	client, err := database.MongoConnect("wassidb")
 
@@ -57,14 +219,10 @@ func FromTitle(title string) {
 	}()
 
 	coll := client.Database("wassidb").Collection("movies")
-	filter := bson.M{}
+	filter := bson.M{"title": title}
 
-	var results []bson.M
-	cursor, _ := coll.Find(context.TODO(), filter)
-	err = cursor.All(context.TODO(), &results)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(len(results))
+	var movie bson.M
+	coll.FindOne(context.TODO(), filter).Decode(&movie)
 
+	return movie
 }
