@@ -16,7 +16,7 @@
 <h3 align="center">WM-Algo</h3>
 
   <p align="center">
-    project_description
+    High performance recommandation algorithm
     <br />
     <a href="https://github.com/sleiderr/wassimovie-algo"><strong>Explore the docs »</strong></a>
     <br />
@@ -64,8 +64,8 @@ WM-Algo is a movie recommandation algorithm. It is designed to provide high perf
 
 ### Built With
 
-* [![Go][Go.dev]][Go-url]
-* [![Mongo][Mongodb.com]][Mongo-url]
+* [![Go.dev][Go]][Go-url]
+* [![Mongodb.com][Mongo]][Mongo-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -114,7 +114,9 @@ Distributed under the GNU GPLv3. See `LICENSE.txt` for more information.
 ## Contact
 
 Sacha Dupuydauby - [@sleiderr](https://github.com/sleiderr) - sacha.dupuydauby@student-cs.fr
+
 Louis Vauterin - [@Greets](https://github.com/Louis-Vauterin) - louis.vauterin@student-cs.fr
+
 Alex Melhem - [@alexmelhem-02](https://github.com/alexmelhem-02) - alex.melhem@student-cs.fr
 
 Project Link: [https://github.com/sleiderr/wassimovie-algo](https://github.com/sleiderr/wassimovie-algo)
