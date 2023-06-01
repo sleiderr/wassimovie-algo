@@ -34,7 +34,55 @@ type User struct {
 }
 
 func main() {
-	UserVectorGeneration()
+	//UserVectorGeneration()
+	//fmt.Println(FromTitle("Nemo"))
+	fmt.Println(RetrieveRatingsDatabase()["50"])
+}
+
+func RetrieveMoviesDatabase() map[string]bson.M {
+	client, err := database.MongoConnect("wassidb")
+
+	if err != nil {
+		panic(err)
+	}
+
+	coll := client.Database("wassidb").Collection("movies")
+	filter := bson.M{}
+
+	cursor, err := coll.Find(context.TODO(), filter)
+	db_movies  := make(map[string]bson.M)
+
+	for cursor.Next(context.TODO()) {
+		var temp_movie bson.M
+		cursor.Decode(&temp_movie)
+		db_movies[fmt.Sprintf("%v",temp_movie["imdb_id"])] = temp_movie
+	}
+
+	return db_movies
+
+}
+
+func RetrieveRatingsDatabase() map[string][]bson.M {
+	client, err := database.MongoConnect("wassidb")
+
+	if err != nil {
+		panic(err)
+	}
+
+	coll := client.Database("wassidb").Collection("ratings")
+	filter := bson.M{}
+
+	cursor, err := coll.Find(context.TODO(), filter)
+	db_ratings  := make(map[string][]bson.M)
+
+	for cursor.Next(context.TODO()) {
+		var temp_rating bson.M
+		cursor.Decode(&temp_rating)
+		db_ratings[fmt.Sprintf("%v",temp_rating["userId"])] = append(db_ratings[fmt.Sprintf("%v",temp_rating["userId"])],temp_rating)
+	}
+
+	return db_ratings
+
 }
 
 func UserVectorGeneration() *map[string][406]float64 {
