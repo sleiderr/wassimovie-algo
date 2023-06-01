@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"wassimovie-algo/internal/database"
+
+	// "math/rand"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type MovieDescription struct {
@@ -23,17 +25,26 @@ type MovieDescription struct {
 
 type MovieVector = [521]float32
 
-const db_uri = "mongodb://wassi-algo:poney@138.195.138.30:27017/wassidb?authMechanism=SCRAM-SHA-256"
-
 func main() {
+	// t := annoyindex.NewAnnoyIndexAngular(f)
+	// for i := 0; i < 1000000; i++ {
+	// 	item := make([]float32, 0, f)
+	// 	for x := 0; x < f; x++ {
+	// 		item = append(item, rand.Float32())
+	// 	}
+	// 	t.AddItem(i, item)
+	// }
+	// t.Build(40)
+	// t.Save("test.ann")
+
+	// annoyindex.DeleteAnnoyIndexAngular(t)
+
+	FromTitle("The Godfather")
 }
 
-func FromTitle(title string) *MovieDescription {
+func FromTitle(title string) {
 
-	serverApi := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(db_uri).SetServerAPIOptions(serverApi)
-
-	client, err := mongo.Connect(context.TODO(), opts)
+	client, err := database.MongoConnect("wassidb")
 
 	if err != nil {
 		panic(err)
@@ -46,10 +57,14 @@ func FromTitle(title string) *MovieDescription {
 	}()
 
 	coll := client.Database("wassidb").Collection("movies")
-	filter := bson.M{"title": title}
+	filter := bson.M{}
 
-	var movie MovieDescription
-	coll.FindOne(context.TODO(), filter).Decode(&movie)
+	var results []bson.M
+	cursor, _ := coll.Find(context.TODO(), filter)
+	err = cursor.All(context.TODO(), &results)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(len(results))
 
-	return &movie
 }

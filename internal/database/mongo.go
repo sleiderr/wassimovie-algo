@@ -19,6 +19,8 @@ type MongoDatabase struct {
 	name string
 }
 
+type Databases struct{}
+
 func MongoConfig() *MONGOConfig {
 	return &MONGOConfig{
 		User:     "wassi-algo",
