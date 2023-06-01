@@ -36,7 +36,7 @@ type User struct {
 func main() {
 	//UserVectorGeneration()
 	//fmt.Println(FromTitle("Nemo"))
-	fmt.Println(RetrieveRatingsDatabase()["50"])
+	fmt.Println(ComputeUserVector("2"))
 }
 
 func RetrieveMoviesDatabase() map[string]bson.M {
@@ -223,10 +223,9 @@ func ComputeUserVector(id string) [406]float64 {
 
 	var results []bson.M
 	var results_movies bson.M
-	var count int32
+	var count float64
 	var user_vector [406]float64
 
-	fmt.Println("test1")
 	cursor, err := coll_ratings.Find(context.TODO(), filter_ratings)
 	cursor.Next(context.TODO())
 	err = cursor.All(context.TODO(), &results)
@@ -235,20 +234,20 @@ func ComputeUserVector(id string) [406]float64 {
 		panic(err)
 	}
 	for _, s := range results {
-		count += 1
+		coeff := float64(s["rating"].(int32))
+		count += math.Abs(coeff)
 		coll_movies.FindOne(context.TODO(), bson.M{"imdb_id": s["movieId"]}).Decode(&results_movies)
 		temp_movie_vec := *BuildMovieVector(results_movies)
 		for i, _ := range temp_movie_vec {
-			user_vector[i] += temp_movie_vec[i]
+			user_vector[i] += temp_movie_vec[i]*coeff
 
 		}
 
 	}
 	for i, _ := range user_vector {
-		user_vector[i] /= float64(count)
+		user_vector[i] /= count
 
 	}
-	fmt.Println(user_vector)
 	return user_vector
 }
 
