@@ -30,6 +30,7 @@ func CreateIndex(movies map[string]bson.M) *MovieIndex {
 		}
 		tmdb_map[i] = imdb
 		movie_vecs[i] = *BuildMovieVector(film)
+		i += 1
 	}
 
 	idx := &MovieIndex{

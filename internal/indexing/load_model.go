@@ -27,28 +27,19 @@ func (m *Model) Handle(ctx echo.Context) error {
 	username := ctx.Param("username")
 
 	user_vec, ok := m.user_index[username]
-	fmt.Println(ok)
 	if !ok {
-		return ctx.String(http.StatusInternalServerError, "Internal server error")
+		return ctx.String(http.StatusNotFound, "User does not exist")
 	}
 
 	unn, _ := m.movies.VecANN(user_vec[:], 100)
 	var id_list []string
 	id_list = make([]string, 100)
 
-	for _, v := range unn {
-		id_list = append(id_list, m.movies.Tmdb_map[v])
+	for i, v := range unn {
+		id_list[i] = m.movies.Tmdb_map[v]
 	}
 
-	json_raw, err := json.Marshal(id_list)
-
-	fmt.Println(id_list)
-
-	if err != nil {
-		return ctx.String(http.StatusInternalServerError, "Internal server error")
-	}
-
-	return ctx.JSON(http.StatusOK, json_raw)
+	return ctx.JSON(http.StatusOK, id_list)
 
 }
 
