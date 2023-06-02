@@ -2,7 +2,6 @@ package indexing
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math"

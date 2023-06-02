@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func InitServer(handler func(echo.Context) error) {
+func InitServer(handler func(echo.Context) error) *echo.Echo {
 
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
@@ -15,5 +15,7 @@ func InitServer(handler func(echo.Context) error) {
 	e.GET("/recommandation/:username", handler)
 
 	e.Start(":8080")
+
+	return e
 
 }
