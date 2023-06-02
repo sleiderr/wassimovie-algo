@@ -42,6 +42,15 @@ func (m *Model) Handle(ctx echo.Context) error {
 
 }
 
+func (m *Model) ReloadModel(l *ModelLoader) {
+	user_idx := l.UserIndexGeneration()
+	movie_db := l.RetrieveMoviesDatabase()
+	film_idx := CreateIndex(movie_db)
+
+	m.movies = film_idx
+	m.user_index = user_idx
+}
+
 func (l *ModelLoader) LoadModel() *Model {
 	usr_idx := l.UserIndexGeneration()
 	movie_db := l.RetrieveMoviesDatabase()
