@@ -14,9 +14,8 @@ func main() {
 
 	stop := make(chan bool, 1)
 	stopped := make(chan bool, 1)
-	stopped <- true
 
-	go LoadServer(stop, stopped)
+	go InitServer(stop, stopped)
 
 	go func() {
 		for {
@@ -30,16 +29,28 @@ func main() {
 	select {}
 }
 
-func Test(stop chan bool, stopped chan bool) {
-	fmt.Println("test")
+func InitServer(stop chan bool, stopped chan bool) {
 
-	stop <- true
-	<-stopped
+	l := &indexing.ModelLoader{}
 
-	fmt.Println("test2")
+	model := l.LoadModel()
+
+	var server *echo.Echo
+
+	fmt.Println("Initialized new dataset")
+
+	server = http.InitServer(model.Handle)
+
+	go func() { server.Start(":8080") }()
+	fmt.Println("HTTP server initialized")
 
 	<-stop
+
+	fmt.Println("Switching to new dataset")
+	server.Shutdown(context.TODO())
+
 	stopped <- true
+
 }
 
 func LoadServer(stop chan bool, stopped chan bool) {

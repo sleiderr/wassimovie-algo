@@ -14,8 +14,6 @@ func InitServer(handler func(echo.Context) error) *echo.Echo {
 
 	e.GET("/recommandation/:username", handler)
 
-	e.Start(":8080")
-
 	return e
 
 }
