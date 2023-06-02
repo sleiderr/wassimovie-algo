@@ -6,8 +6,10 @@ import (
 )
 
 func main() {
-	go http.InitServer()
-	loader := &indexing.ModelLoader{}
-	loader.UserIndexGeneration()
+	l := &indexing.ModelLoader{}
+
+	model := l.LoadModel()
+
+	http.InitServer(model.Handle)
 
 }

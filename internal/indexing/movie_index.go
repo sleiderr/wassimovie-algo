@@ -66,7 +66,7 @@ func (index *MovieIndex) UserANN(user_id int, count int) ([]int, error) {
 
 }
 
-func (index *MovieIndex) VecANN(vec MovieVector, count int) ([]int, error) {
+func (index *MovieIndex) VecANN(vec []float32, count int) ([]int, error) {
 	var result []int
 	index.Movie_index.GetNnsByVector(vec, count, -1, &result)
 	index.Movie_index.GetNItems()

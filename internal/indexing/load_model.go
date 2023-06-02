@@ -2,18 +2,68 @@ package indexing
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"sync"
 	"wassimovie-algo/internal/database"
 
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type ModelLoader struct{}
+type Model struct {
+	movies     *MovieIndex
+	user_index map[string][406]float32
+}
 
-const MAX_CONCURRENT_JOBS = 1000
+const MAX_CONCURRENT_JOBS = 2000
+
+func (m *Model) Handle(ctx echo.Context) error {
+
+	username := ctx.Param("username")
+
+	user_vec, ok := m.user_index[username]
+	fmt.Println(ok)
+	if !ok {
+		return ctx.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	unn, _ := m.movies.VecANN(user_vec[:], 100)
+	var id_list []string
+	id_list = make([]string, 100)
+
+	for _, v := range unn {
+		id_list = append(id_list, m.movies.Tmdb_map[v])
+	}
+
+	json_raw, err := json.Marshal(id_list)
+
+	fmt.Println(id_list)
+
+	if err != nil {
+		return ctx.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	return ctx.JSON(http.StatusOK, json_raw)
+
+}
+
+func (l *ModelLoader) LoadModel() *Model {
+	usr_idx := l.UserIndexGeneration()
+	movie_db := l.RetrieveMoviesDatabase()
+	film_idx := CreateIndex(movie_db)
+
+	model := &Model{
+		movies:     film_idx,
+		user_index: usr_idx,
+	}
+
+	return model
+}
 
 func (l *ModelLoader) RetrieveMoviesDatabase() map[string]bson.M {
 	client, err := database.MongoConnect("wassidb")
@@ -60,7 +110,7 @@ func (l *ModelLoader) RetrieveRatingsDatabase() map[string][]bson.M {
 
 }
 
-func (l *ModelLoader) UserIndexGeneration() *map[string][406]float32 {
+func (l *ModelLoader) UserIndexGeneration() map[string][406]float32 {
 
 	var results map[string][406]float32
 	results = make(map[string][406]float32)
@@ -103,7 +153,7 @@ func (l *ModelLoader) UserIndexGeneration() *map[string][406]float32 {
 		}
 	}
 
-	return &results
+	return results
 
 }
 
